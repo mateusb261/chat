@@ -3,13 +3,12 @@ const io = require('socket.io-client');
 const { SERVER_URL } = require('./config/config');
 const { generateKeys } = require('./utils/ecc');
 
-// Configuração do readline para capturar entrada do usuário
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
-// Função para autenticação
+// Função para autenticação de usuário
 const authenticateUser = async (username, password) => {
     const response = await fetch(`${SERVER_URL}/auth/login`, {
         method: 'POST',
@@ -19,60 +18,84 @@ const authenticateUser = async (username, password) => {
     return response.json();
 };
 
-// Função para obter chave pública do servidor
-const getPublicKey = async (username) => {
-    const response = await fetch(`${SERVER_URL}/chat/publicKey/${username}`);
+// Função para cadastro de usuário
+const registerUser = async (username, password) => {
+    const response = await fetch(`${SERVER_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+    });
     return response.json();
 };
 
-// Função principal
-const startChat = async () => {
-    rl.question('Digite seu nome de usuário: ', async (username) => {
-        rl.question('Digite sua senha: ', async (password) => {
+// Função principal para iniciar o chat após o login
+const startChat = async (username) => {
+    // Obter chave pública do servidor
+    const publicKeyResponse = await fetch(`${SERVER_URL}/chat/publicKey/${username}`);
+    const publicKeyData = await publicKeyResponse.json();
+    const publicKey = publicKeyData.publicKey;
 
-            // Autenticação
-            const authResponse = await authenticateUser(username, password);
-            if (authResponse.error) {
-                console.error(authResponse.error);
-                rl.close();
-                return;
-            }
+    // Gerar chave privada para a sessão atual
+    const { privateKey } = generateKeys();
 
-            console.log('Login bem-sucedido!');
+    // Conexão com o servidor de chat
+    const socket = io(SERVER_URL);
 
-            // Obter chave pública do usuário
-            const publicKeyResponse = await getPublicKey(username);
-            const publicKey = publicKeyResponse.publicKey;
+    socket.on('message', (data) => {
+        const decryptedMessage = decryptMessage(data.encryptedMessage, privateKey);
+        console.log(`Mensagem recebida: ${decryptedMessage}`);
+    });
 
-            // Gerar chave privada para a sessão atual
-            const { privateKey } = generateKeys();
+    rl.question('Digite sua mensagem: ', (message) => {
+        const encryptedMessage = encryptMessage(message, publicKey);
+        socket.emit('message', { encryptedMessage });
+        rl.close();
+    });
 
-            // Lidar com mensagens enviadas
-            const socket = io(SERVER_URL);
+    socket.on('connect', () => {
+        console.log('Conectado ao servidor.');
+    });
 
-            socket.on('message', (data) => {
-                const decryptedMessage = decryptMessage(data.encryptedMessage, privateKey);
-                console.log(`Mensagem recebida: ${decryptedMessage}`);
-            });
-
-            // Enviar mensagem
-            rl.question('Digite sua mensagem: ', (message) => {
-                const encryptedMessage = encryptMessage(message, publicKey);
-                socket.emit('message', { encryptedMessage });
-                rl.close(); // Fecha a interface após enviar a mensagem
-            });
-
-            // Conexão do socket
-            socket.on('connect', () => {
-                console.log('Conectado ao servidor.');
-            });
-
-            socket.on('disconnect', () => {
-                console.log('Desconectado do servidor.');
-            });
-        });
+    socket.on('disconnect', () => {
+        console.log('Desconectado do servidor.');
     });
 };
 
-// Inicia o chat
-startChat();
+// Função para escolher entre cadastro ou login
+const startApp = () => {
+    rl.question('Escolha uma opção:\n1 - Cadastrar Usuário\n2 - Fazer Login\nEscolha: ', (choice) => {
+        if (choice === '1') {
+            rl.question('Digite seu nome de usuário: ', (username) => {
+                rl.question('Digite sua senha: ', (password) => {
+                    registerUser(username, password).then(response => {
+                        if (response.error) {
+                            console.error('Erro no cadastro:', response.error);
+                        } else {
+                            console.log('Cadastro realizado com sucesso!');
+                        }
+                        rl.close();
+                    });
+                });
+            });
+        } else if (choice === '2') {
+            rl.question('Digite seu nome de usuário: ', (username) => {
+                rl.question('Digite sua senha: ', (password) => {
+                    authenticateUser(username, password).then(authResponse => {
+                        if (authResponse.error) {
+                            console.error('Erro no login:', authResponse.error);
+                        } else {
+                            console.log('Login bem-sucedido!');
+                            startChat(username);
+                        }
+                    });
+                });
+            });
+        } else {
+            console.log('Opção inválida.');
+            rl.close();
+        }
+    });
+};
+
+// Inicia o programa
+startApp();

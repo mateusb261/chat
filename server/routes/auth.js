@@ -1,34 +1,68 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
-const db = require('../config/db');
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');  // Isso importa diretamente o modelo `User`
 const router = express.Router();
 
-// Rota de registro
+// Rota para cadastro de usuário
 router.post('/register', async (req, res) => {
-    const { username, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const { username, password, publicKey } = req.body;
 
-    const sql = 'INSERT INTO usuarios (nome_usuario, senha_hash) VALUES (?, ?)';
-    db.query(sql, [username, hashedPassword], (err, result) => {
-        if (err) return res.status(500).json({ error: 'Erro ao registrar usuário.' });
-        res.status(201).json({ message: 'Usuário registrado com sucesso.' });
-    });
+    if (!username || !password || !publicKey) {
+        return res.status(400).json({ error: 'Preencha todos os campos.' });
+    }
+
+    // Verificar se o usuário já existe
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser) {
+        return res.status(400).json({ error: 'Nome de usuário já está em uso.' });
+    }
+
+    try {
+        // Criptografar a senha
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Criar o novo usuário no banco de dados
+        const newUser = await User.create({
+            username,
+            password: hashedPassword,
+            public_key: publicKey,  // Armazenar chave pública
+        });
+
+        res.status(201).json({ message: 'Usuário registrado com sucesso!' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao registrar usuário.' });
+    }
 });
 
-// Rota de login
+// Rota para login de usuário
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
-    const sql = 'SELECT * FROM usuarios WHERE nome_usuario = ?';
-    db.query(sql, [username], async (err, results) => {
-        if (err || results.length === 0) return res.status(401).json({ error: 'Credenciais inválidas.' });
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Nome de usuário e senha são obrigatórios.' });
+    }
 
-        const user = results[0];
-        const match = await bcrypt.compare(password, user.senha_hash);
-        if (!match) return res.status(401).json({ error: 'Credenciais inválidas.' });
+    try {
+        // Procurar usuário no banco de dados
+        const user = await User.findOne({ where: { username } });
 
-        res.json({ message: 'Login bem-sucedido.' });
-    });
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        // Verificar a senha
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordValid) {
+            return res.status(400).json({ error: 'Senha inválida.' });
+        }
+
+        res.status(200).json({ message: 'Login bem-sucedido!' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao fazer login.' });
+    }
 });
 
 module.exports = router;

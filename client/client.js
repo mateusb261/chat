@@ -40,13 +40,23 @@ const authenticateUser = async (username, password) => {
     return response.json();
 };
 
-// Função para cadastro de usuário
+// Função para cadastro de usuário (incluindo chave pública)
 const registerUser = async (username, password) => {
+    // Gerar chave pública e privada no cliente
+    const { publicKey, privateKey } = generateKeys();
+
+    // Imprimir nome de usuário, senha e chave pública no terminal
+    console.log(`Cadastro de Usuário:`);
+    console.log(`Nome de Usuário: ${username}`);
+    console.log(`Senha: ${password}`);
+    console.log(`Chave Pública: ${publicKey}`);
+
     const response = await fetch(`${SERVER_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, publicKey }), // Enviar chave pública junto com credenciais
     });
+
     return response.json();
 };
 

@@ -28,6 +28,13 @@ io.on('connection', (socket) => {
     });
 });
 
+// Sincroniza o banco de dados
+db.sync({ force: false }).then(() => {
+    console.log('Banco de dados sincronizado!');
+}).catch((err) => {
+    console.error('Erro ao sincronizar o banco de dados:', err);
+});
+
 // Inicia o servidor, ouvindo em todas as interfaces de rede (0.0.0.0)
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${PORT}`);

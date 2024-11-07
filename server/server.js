@@ -9,6 +9,10 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// Definir a porta para o servidor
+const PORT = process.env.PORT || 3000;
+
+// Middleware para JSON
 app.use(express.json());
 
 // Configura as rotas de autenticação e chat
@@ -19,14 +23,12 @@ app.use('/chat', chatRoutes);
 io.on('connection', (socket) => {
     console.log('Um usuário se conectou.');
 
-    // Aqui você pode configurar o gerenciamento de mensagens
     socket.on('disconnect', () => {
         console.log('Um usuário se desconectou.');
     });
 });
 
-// Inicia o servidor na porta desejada
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+// Inicia o servidor, ouvindo em todas as interfaces de rede (0.0.0.0)
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });

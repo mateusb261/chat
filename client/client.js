@@ -8,6 +8,28 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
+// Conecta imediatamente ao servidor de chat
+const socket = io(SERVER_URL);
+
+// Mensagem ao conectar com sucesso
+socket.on('connect', () => {
+    console.log('Conectado ao servidor de chat com sucesso.');
+    // Chama a função de menu após a conexão ser bem-sucedida
+    startApp();
+});
+
+// Mensagem ao desconectar do servidor
+socket.on('disconnect', () => {
+    console.log('Desconectado do servidor.');
+});
+
+// Mensagem ao falhar a conexão
+socket.on('connect_error', (error) => {
+    console.error('Falha ao conectar ao servidor:', error.message);
+    // Se a conexão falhar, termina a execução
+    rl.close();
+});
+
 // Função para autenticação de usuário
 const authenticateUser = async (username, password) => {
     const response = await fetch(`${SERVER_URL}/auth/login`, {
@@ -38,9 +60,7 @@ const startChat = async (username) => {
     // Gerar chave privada para a sessão atual
     const { privateKey } = generateKeys();
 
-    // Conexão com o servidor de chat
-    const socket = io(SERVER_URL);
-
+    // Escuta mensagens recebidas do servidor
     socket.on('message', (data) => {
         const decryptedMessage = decryptMessage(data.encryptedMessage, privateKey);
         console.log(`Mensagem recebida: ${decryptedMessage}`);
@@ -50,14 +70,6 @@ const startChat = async (username) => {
         const encryptedMessage = encryptMessage(message, publicKey);
         socket.emit('message', { encryptedMessage });
         rl.close();
-    });
-
-    socket.on('connect', () => {
-        console.log('Conectado ao servidor.');
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Desconectado do servidor.');
     });
 };
 
@@ -96,6 +108,3 @@ const startApp = () => {
         }
     });
 };
-
-// Inicia o programa
-startApp();

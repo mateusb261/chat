@@ -6,7 +6,7 @@ const User = require('../models/User');  // Isso importa diretamente o modelo `U
 router.get('/publicKey/:username', async (req, res) => {
     const { username } = req.params;
 
-    console.log("Username recebido: ", username); // Debug
+    console.log("Username recebido:", username); // Debug
 
     try {
         // Buscando o usuário pelo username
@@ -16,9 +16,11 @@ router.get('/publicKey/:username', async (req, res) => {
         });
 
         if (!user) {
+            console.log("Usuário não encontrado:", username);  // Log se o usuário não foi encontrado
             return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
 
+        console.log("Usuário encontrado:", username);  // Log se o usuário foi encontrado
         res.json({ publicKey: user.public_key });
     } catch (err) {
         console.error('Erro no servidor:', err);

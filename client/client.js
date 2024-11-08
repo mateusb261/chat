@@ -103,8 +103,8 @@ const startApp = () => {
             rl.question('Digite seu nome de usuário: ', (username) => {
                 rl.question('Digite sua senha: ', (password) => {
                     authenticateUser(username, password).then(authResponse => {
-                        if (authResponse.error) {
-                            console.error('Erro no login:', authResponse.error);
+                        if (authResponse.message !== 'Login bem-sucedido') {
+                            console.error('Erro no login:', authResponse.message || 'Usuário ou senha incorretos');
                         } else {
                             console.log('Login bem-sucedido!');
                             startChat(username);

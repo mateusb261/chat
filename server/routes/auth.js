@@ -35,34 +35,32 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Rota para login de usuário
+// Rota de autenticação
 router.post('/login', async (req, res) => {
+  try {
     const { username, password } = req.body;
 
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Nome de usuário e senha são obrigatórios.' });
+    // Busca pelo usuário no banco de dados
+    const user = await User.findOne({ where: { username } });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
     }
 
-    try {
-        // Procurar usuário no banco de dados
-        const user = await User.findOne({ where: { username } });
+    // Verifica se a senha é válida
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-        if (!user) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
-        }
-
-        // Verificar a senha
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-
-        if (!isPasswordValid) {
-            return res.status(400).json({ error: 'Senha inválida.' });
-        }
-
-        res.status(200).json({ message: 'Login bem-sucedido!' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Erro ao fazer login.' });
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Senha incorreta' });
     }
+
+    // Se tudo estiver certo, retorna sucesso no login
+    res.status(200).json({ message: 'Login bem-sucedido' });
+
+  } catch (error) {
+    console.error('Erro ao autenticar usuário:', error);
+    res.status(500).json({ message: 'Erro no servidor' });
+  }
 });
 
 module.exports = router;

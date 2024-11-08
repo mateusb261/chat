@@ -1,19 +1,30 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+const cors = require('cors');  // Adicionado o CORS
 const db = require('./config/db');
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+    cors: {
+        origin: '*',  // Permitir todas as origens (substitua pelo seu domínio em produção)
+        methods: ['GET', 'POST'],
+        allowedHeaders: ['Content-Type'],
+        credentials: true
+    }
+});
 
 // Definir a porta para o servidor
 const PORT = process.env.PORT || 3000;
 
 // Middleware para JSON
 app.use(express.json());
+
+// Middleware CORS
+app.use(cors());  // Habilita o CORS para todas as rotas
 
 // Configura as rotas de autenticação e chat
 app.use('/auth', authRoutes);
@@ -29,7 +40,7 @@ io.on('connection', (socket) => {
 });
 
 // Sincroniza o banco de dados
-db.sync({ force: false }).then(() => {
+db.sync({ force: true }).then(() => {
     console.log('Banco de dados sincronizado!');
 }).catch((err) => {
     console.error('Erro ao sincronizar o banco de dados:', err);

@@ -1,18 +1,29 @@
 const express = require('express');
 const db = require('../config/db');
 const router = express.Router();
+const User = require('../models/User');  // Isso importa diretamente o modelo `User`
 
-// Rota para recuperar chave pública do usuário
-router.get('/publicKey/:username', (req, res) => {
+router.get('/publicKey/:username', async (req, res) => {
     const { username } = req.params;
 
-    const sql = 'SELECT chave_publica FROM usuarios WHERE nome_usuario = ?';
-    db.query(sql, [username], (err, results) => {
-        if (err || results.length === 0) {
+    console.log("Username recebido: ", username); // Debug
+
+    try {
+        // Buscando o usuário pelo username
+        const user = await User.findOne({
+            where: { username: username },
+            attributes: ['public_key'], // Apenas o campo public_key
+        });
+
+        if (!user) {
             return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
-        res.json({ publicKey: results[0].chave_publica });
-    });
+
+        res.json({ publicKey: user.public_key });
+    } catch (err) {
+        console.error('Erro no servidor:', err);
+        return res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 module.exports = router;

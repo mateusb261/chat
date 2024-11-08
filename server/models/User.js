@@ -1,23 +1,34 @@
+// models/User.js
+
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 
-// Definir o modelo de usuário
 const User = sequelize.define('User', {
-    username: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true, // Garante que o nome de usuário será único
-    },
-    password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    public_key: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-    },
+  username: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  public_key: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
 }, {
-    timestamps: true, // Usar o timestamp para criar os campos createdAt e updatedAt automaticamente
+  // Se a tabela no banco de dados for nomeada de 'Users', adicione isso explicitamente
+  tableName: 'users',
+  timestamps: true,  // Para garantir que 'createdAt' e 'updatedAt' sejam usados
 });
 
 module.exports = User;

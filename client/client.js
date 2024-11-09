@@ -33,6 +33,26 @@ socket.on('connect_error', (error) => {
     }, 5000); // Tenta reconectar após 5 segundos
 });
 
+// Recebe a lista de outros usuários conectados
+socket.on('activeUsers', (otherUsers) => {
+    console.log('\nOutros usuários conectados:');
+    otherUsers.forEach((user, index) => {
+        console.log(`${index + 1} - ${user}`);
+    });
+
+    rl.question('Escolha um usuário para iniciar um chat ou pressione Enter para ignorar: ', (choice) => {
+        const selectedUser = otherUsers[parseInt(choice) - 1];
+        if (selectedUser) {
+            console.log(`Você escolheu iniciar um chat com: ${selectedUser}`);
+            // Aqui, você pode iniciar o chat com o `selectedUser`
+            // Exemplo: socket.emit('startChat', selectedUser);
+        } else {
+            console.log('Nenhum usuário selecionado para o chat.');
+            startApp(); // Continua a execução do menu após o cadastro
+        }
+    });
+});
+
 // Função para autenticação de usuário
 const authenticateUser = async (username, password) => {
     const response = await fetch(`${SERVER_URL}/auth/login`, {
@@ -40,6 +60,7 @@ const authenticateUser = async (username, password) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
     });
+
     return response.json();
 };
 
@@ -59,7 +80,19 @@ const registerUser = async (username, password) => {
         body: JSON.stringify({ username, password, publicKey }),
     });
 
-    return response.json();
+    const responseData = await response.json(); // Mantém a resposta JSON
+
+    if (responseData.error) {
+        console.error('Erro no cadastro:', responseData.error);
+    } else {
+        console.log('Cadastro realizado com sucesso!');
+    }
+
+    // Não fecha o readline aqui para manter o terminal ativo para nova entrada
+    // Chama a função para mostrar o menu novamente após o cadastro
+    startApp(); // Continua a execução do menu após o cadastro
+
+    return responseData; // Retorna a resposta JSON
 };
 
 // Função principal para iniciar o chat após o login
@@ -96,9 +129,9 @@ const startApp = () => {
                         if (response.error) {
                             console.error('Erro no cadastro:', response.error);
                         } else {
-                            console.log('Cadastro realizado com sucesso!');
+                            // O fluxo agora continua corretamente após o cadastro
+                            // Não é necessário mais chamar startApp() aqui
                         }
-                        rl.close();
                     });
                 });
             });
@@ -107,7 +140,10 @@ const startApp = () => {
                 rl.question('Digite sua senha: ', (password) => {
                     authenticateUser(username, password).then(authResponse => {
                         if (authResponse.message !== 'Login bem-sucedido') {
-                            console.error('Erro no login:', authResponse.message || 'Usuário ou senha incorretos');
+                            //console.error('Erro no login:', authResponse.message || 'Usuário ou senha incorretos');
+                            console.log('Usuário ou senha incorretos');
+                            // Chama startApp novamente para permitir nova tentativa de login ou cadastro
+                            startApp();
                         } else {
                             console.log('Login bem-sucedido!');
                             startChat(username);
@@ -117,7 +153,7 @@ const startApp = () => {
             });
         } else {
             console.log('Opção inválida.');
-            rl.close();
+            rl.close(); // Encerra o programa em caso de escolha inválida
         }
     });
 };

@@ -13,7 +13,7 @@ const socket = io(SERVER_URL);
 
 // Mensagem ao conectar com sucesso
 socket.on('connect', () => {
-    console.log('Conectado ao servidor de chat com sucesso.');
+    console.log('Conectado ao servidor WebSocket com ID do socket:', socket.id);
     // Chama a função de menu após a conexão ser bem-sucedida
     startApp();
 });
@@ -26,8 +26,11 @@ socket.on('disconnect', () => {
 // Mensagem ao falhar a conexão
 socket.on('connect_error', (error) => {
     console.error('Falha ao conectar ao servidor:', error.message);
-    // Se a conexão falhar, termina a execução
-    rl.close();
+    // Se a conexão falhar, tenta reconectar automaticamente
+    setTimeout(() => {
+        console.log('Tentando reconectar...');
+        socket.connect();
+    }, 5000); // Tenta reconectar após 5 segundos
 });
 
 // Função para autenticação de usuário
@@ -42,7 +45,6 @@ const authenticateUser = async (username, password) => {
 
 // Função para cadastro de usuário (incluindo chave pública)
 const registerUser = async (username, password) => {
-    // Gerar chave pública e privada no cliente
     const { publicKey, privateKey } = generateKeys();
 
     // Imprimir nome de usuário, senha e chave pública no terminal
@@ -54,7 +56,7 @@ const registerUser = async (username, password) => {
     const response = await fetch(`${SERVER_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, publicKey }), // Enviar chave pública junto com credenciais
+        body: JSON.stringify({ username, password, publicKey }),
     });
 
     return response.json();
@@ -62,12 +64,13 @@ const registerUser = async (username, password) => {
 
 // Função principal para iniciar o chat após o login
 const startChat = async (username) => {
-    // Obter chave pública do servidor
+    // Envia o evento 'login' para o servidor com o nome de usuário
+    socket.emit('login', username);
+
     const publicKeyResponse = await fetch(`${SERVER_URL}/chat/publicKey/${username}`);
     const publicKeyData = await publicKeyResponse.json();
     const publicKey = publicKeyData.publicKey;
 
-    // Gerar chave privada para a sessão atual
     const { privateKey } = generateKeys();
 
     // Escuta mensagens recebidas do servidor
@@ -79,7 +82,7 @@ const startChat = async (username) => {
     rl.question('Digite sua mensagem: ', (message) => {
         const encryptedMessage = encryptMessage(message, publicKey);
         socket.emit('message', { encryptedMessage });
-        rl.close();
+        // Não chama rl.close() aqui, pois o usuário ainda pode enviar outras mensagens
     });
 };
 

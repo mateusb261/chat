@@ -30,17 +30,39 @@ app.use(cors());  // Habilita o CORS para todas as rotas
 app.use('/auth', authRoutes);
 app.use('/chat', chatRoutes);
 
+// Armazena usuários conectados
+const connectedUsers = {};
+
 // Inicializa o socket.io para comunicação em tempo real
 io.on('connection', (socket) => {
-    console.log('Um usuário se conectou.');
+    console.log('Um host se conectou.');
 
+    // Evento de login
+    socket.on('login', (username) => {
+        // Armazena o usuário com o ID do socket
+        connectedUsers[socket.id] = username;
+
+        // Filtra outros usuários conectados
+        const otherUsers = Object.values(connectedUsers).filter(user => user !== username);
+
+        // Envia a lista de outros usuários conectados
+        socket.emit('activeUsers', otherUsers);
+
+        console.log(`${username} fez login. Usuários conectados: ${Object.values(connectedUsers)}`);
+    });
+
+    // Evento de desconexão
     socket.on('disconnect', () => {
-        console.log('Um usuário se desconectou.');
+        const username = connectedUsers[socket.id];
+        if (username) {
+            console.log(`${username} se desconectou.`);
+            delete connectedUsers[socket.id];
+        }
     });
 });
 
 // Sincroniza o banco de dados
-db.sync({ force: true }).then(() => {
+db.sync({ force: false }).then(() => {
     console.log('Banco de dados sincronizado!');
 }).catch((err) => {
     console.error('Erro ao sincronizar o banco de dados:', err);

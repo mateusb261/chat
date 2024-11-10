@@ -3,6 +3,8 @@ const io = require('socket.io-client');
 const { SERVER_URL } = require('./config/config');
 const { generateKeys, encryptMessage, decryptMessage } = require('./utils/ecc');
 
+let currentUserPublicKey; // Armazena a chave pública do usuário logado
+
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -41,7 +43,17 @@ const authenticateUser = async (username, password) => {
         body: JSON.stringify({ username, password }),
     });
 
-    return response.json();
+    const data = await response.json();
+
+    // Armazena a chave pública do usuário logado para uso posterior
+    if (data.publicKey) {
+        currentUserPublicKey = data.publicKey;
+        console.log('Chave pública do usuário logado armazenada:', currentUserPublicKey);
+    } else {
+        console.error('Falha ao obter a chave pública do usuário logado.');
+    }
+
+    return data;
 };
 
 // Função para cadastro de usuário (incluindo chave pública)
@@ -77,7 +89,7 @@ const registerUser = async (username, password) => {
 
 // Função para iniciar o chat e mostrar o menu de opções
 const startChat = (username) => {
-    socket.emit('login', username);
+    socket.emit('login', username, currentUserPublicKey); // Envia a chave pública junto com o login
 
     // Remove o ouvinte anterior, se houver, para evitar múltiplas mensagens duplicadas
     socket.off('activeUsers');
@@ -90,6 +102,7 @@ const startChat = (username) => {
 
         rl.question('Escolha um usuário para iniciar um chat ou pressione Enter para ignorar: ', (choice) => {
             const selectedUser = otherUsers[parseInt(choice) - 1];
+            //console.log(selectedUser);
             if (selectedUser) {
                 console.log(`Você escolheu iniciar um chat com: ${selectedUser}`);
                 startChatSession(username, selectedUser);
@@ -109,6 +122,7 @@ const startChat = (username) => {
 
 // Função para iniciar uma sessão de chat
 const startChatSession = (username, selectedUser) => {
+    console.log(`Usuário esolhido dentro de startChatSession: ${selectedUser}`);
     socket.emit('requestPublicKey', selectedUser, (publicKey) => {
         if (!publicKey) {
             console.error('Chave pública não recebida ou inválida!');

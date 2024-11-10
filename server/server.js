@@ -31,7 +31,7 @@ app.use('/auth', authRoutes);
 app.use('/chat', chatRoutes);
 
 // Armazena usuários conectados
-const connectedUsers = {};
+const connectedUsers = {}; // Formato: { socketId: { username, publicKey } }
 const chatSessions = {}; // Armazenar os pares de chaves públicas de cada sessão de chat
 
 // Inicializa o socket.io para comunicação em tempo real
@@ -39,17 +39,20 @@ io.on('connection', (socket) => {
     console.log('Um host se conectou.');
 
     // Evento de login
-    socket.on('login', (username) => {
+    socket.on('login', (username, publicKey) => {
         // Armazena o usuário com o ID do socket
-        connectedUsers[socket.id] = username;
+        connectedUsers[socket.id] = { username, publicKey };
 
         // Filtra outros usuários conectados
-        const otherUsers = Object.values(connectedUsers).filter(user => user !== username);
+        const otherUsers = Object.values(connectedUsers)
+            .filter(user => user.username !== username)
+            .map(user => user.username);
 
         // Envia a lista de outros usuários conectados
         socket.emit('activeUsers', otherUsers);
 
-        console.log(`${username} fez login. Usuários conectados: ${Object.values(connectedUsers)}`);
+        //console.log(`${username} fez login. Usuários conectados: ${Object.values(connectedUsers).map(u => u.username)}`);
+        console.log('Usuários conectados no servidor:', connectedUsers);  // Imprime a lista de usuários
     });
 
     // Evento de desconexão
@@ -63,38 +66,32 @@ io.on('connection', (socket) => {
 
     // Solicitação de chave pública
     socket.on('requestPublicKey', (targetUser, callback) => {
-        const targetSocket = Object.keys(connectedUsers).find(id => connectedUsers[id] === targetUser);
-        if (targetSocket) {
-            // Aqui você pode fornecer a chave pública do usuário alvo (supondo que ela esteja armazenada no banco de dados)
-            // No exemplo, o código assume que as chaves públicas estão armazenadas no lado do cliente.
-            const publicKey = chatSessions[targetSocket]?.publicKey; // Verifica se a chave pública foi armazenada corretamente
-            if (publicKey) {
-                callback(publicKey); // Envia a chave pública para o cliente
-            } else {
-                console.error('Chave pública não encontrada para o usuário:', targetUser);
-                callback(null); // Se a chave pública não for encontrada, retorna null
-            }
+        const target = Object.values(connectedUsers).find(user => user.username === targetUser);
+        if (target && target.publicKey) {
+            callback(target.publicKey); // Envia a chave pública para o cliente
         } else {
-            console.error('Usuário não encontrado:', targetUser);
-            callback(null); // Se o usuário não for encontrado, retorna null
+            console.error('Chave pública não encontrada para o usuário:', targetUser);
+            callback(null); // Se a chave pública não for encontrada, retorna null
         }
     });
+
 
     // Envio de mensagem criptografada
     socket.on('message', (data) => {
         const { to, encryptedMessage } = data;
 
         // Enviar mensagem criptografada para o usuário destinatário
-        const targetSocket = Object.keys(connectedUsers).find(id => connectedUsers[id] === to);
+        const targetSocket = Object.keys(connectedUsers).find(id => connectedUsers[id].username === to);
         if (targetSocket) {
-            socket.to(targetSocket).emit('newMessage', { from: connectedUsers[socket.id], encryptedMessage });
+            socket.to(targetSocket).emit('newMessage', { from: connectedUsers[socket.id].username, encryptedMessage });
         }
     });
 
     // Criar ou manter canal de criptografia
     socket.on('startChat', (targetUser, publicKey) => {
-        chatSessions[socket.id] = { publicKey: publicKey, targetUser: targetUser };
-        console.log(`Canal de chat iniciado entre ${connectedUsers[socket.id]} e ${targetUser}`);
+        // Armazena a chave pública de cada lado no chatSessions
+        chatSessions[socket.id] = { publicKey, targetUser };
+        console.log(`Canal de chat iniciado entre ${connectedUsers[socket.id].username} e ${targetUser}`);
     });
 });
 

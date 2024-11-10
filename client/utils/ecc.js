@@ -1,4 +1,6 @@
 const { generateKeyPairSync, privateEncrypt, publicDecrypt } = require('crypto');
+const crypto = require('crypto');
+
 
 // Função para gerar um par de chaves ECC
 const generateKeys = () => {

@@ -10,8 +10,17 @@ const generateKeys = () => {
 
 // Função para criptografar mensagem
 const encryptMessage = (message, publicKey) => {
-    return privateEncrypt(publicKey, Buffer.from(message));
+    try {
+        return privateEncrypt({
+            key: publicKey,
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+        }, Buffer.from(message));
+    } catch (err) {
+        console.error('Erro ao criptografar a mensagem:', err);
+        throw err;
+    }
 };
+
 
 // Função para descriptografar mensagem
 const decryptMessage = (encryptedMessage, privateKey) => {

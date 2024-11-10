@@ -32,6 +32,7 @@ app.use('/chat', chatRoutes);
 
 // Armazena usuários conectados
 const connectedUsers = {};
+const chatSessions = {}; // Armazenar os pares de chaves públicas de cada sessão de chat
 
 // Inicializa o socket.io para comunicação em tempo real
 io.on('connection', (socket) => {
@@ -58,6 +59,39 @@ io.on('connection', (socket) => {
             console.log(`${username} se desconectou.`);
             delete connectedUsers[socket.id];
         }
+    });
+
+    // Solicitação de chave pública
+    socket.on('requestPublicKey', (targetUser, callback) => {
+        const targetSocket = Object.keys(connectedUsers).find(id => connectedUsers[id] === targetUser);
+        if (targetSocket) {
+            // Aqui você pode fornecer a chave pública do usuário alvo (supondo que ela esteja armazenada no banco de dados)
+            // No exemplo, o código assume que as chaves públicas estão armazenadas no lado do cliente.
+            const publicKey = chatSessions[targetSocket]?.publicKey; // Verifica se a chave pública foi armazenada corretamente
+            if (publicKey) {
+                callback(publicKey); // Retorna a chave pública para o cliente
+            } else {
+                console.error('Chave pública não encontrada para o usuário:', targetUser);
+                callback(null); // Retorna null em caso de erro
+            }
+        }
+    });
+
+    // Envio de mensagem criptografada
+    socket.on('message', (data) => {
+        const { to, encryptedMessage } = data;
+
+        // Enviar mensagem criptografada para o usuário destinatário
+        const targetSocket = Object.keys(connectedUsers).find(id => connectedUsers[id] === to);
+        if (targetSocket) {
+            socket.to(targetSocket).emit('newMessage', { from: connectedUsers[socket.id], encryptedMessage });
+        }
+    });
+
+    // Criar ou manter canal de criptografia
+    socket.on('startChat', (targetUser, publicKey) => {
+        chatSessions[socket.id] = { publicKey: publicKey, targetUser: targetUser };
+        console.log(`Canal de chat iniciado entre ${connectedUsers[socket.id]} e ${targetUser}`);
     });
 });
 

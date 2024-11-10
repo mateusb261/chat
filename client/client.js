@@ -114,14 +114,22 @@ const startChatSession = (username, selectedUser) => {
             console.error('Chave pública não recebida ou inválida!');
             return;
         }
+
+        console.log('Chave pública recebida:', publicKey); // Verifique se a chave pública está correta
+
+        // Agora você pode continuar com a inicialização do chat e criptografia da mensagem
         const { privateKey } = generateKeys();
         socket.emit('startChat', selectedUser, publicKey); // Inicia o canal de chat com a chave pública do outro usuário
 
         rl.question('Digite sua mensagem: ', (message) => {
-            const encryptedMessage = encryptMessage(message, publicKey);
-            socket.emit('message', { to: selectedUser, encryptedMessage });
-            console.log('Mensagem enviada!');
-            showChatOptions(username, selectedUser);
+            try {
+                const encryptedMessage = encryptMessage(message, publicKey); // Criptografa com a chave pública
+                socket.emit('message', { to: selectedUser, encryptedMessage });
+                console.log('Mensagem enviada!');
+                showChatOptions(username, selectedUser);
+            } catch (err) {
+                console.error('Erro ao criptografar a mensagem:', err);
+            }
         });
     });
 };

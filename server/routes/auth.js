@@ -58,8 +58,11 @@ router.post('/login', async (req, res) => {
         return res.status(500).json({ message: 'Usuário ou senha incorretos' });
     }
 
-    // Se tudo estiver certo, retorna sucesso no login
-    res.status(200).json({ message: 'Login bem-sucedido' });
+    // Se tudo estiver certo, retorna sucesso no login e a chave pública
+    res.status(200).json({
+        message: 'Login bem-sucedido',
+        publicKey: user.public_key  // Envia a chave pública ao cliente
+    });
 
   } catch (error) {
     console.error('Erro ao autenticar usuário:', error);

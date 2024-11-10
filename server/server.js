@@ -69,11 +69,14 @@ io.on('connection', (socket) => {
             // No exemplo, o código assume que as chaves públicas estão armazenadas no lado do cliente.
             const publicKey = chatSessions[targetSocket]?.publicKey; // Verifica se a chave pública foi armazenada corretamente
             if (publicKey) {
-                callback(publicKey); // Retorna a chave pública para o cliente
+                callback(publicKey); // Envia a chave pública para o cliente
             } else {
                 console.error('Chave pública não encontrada para o usuário:', targetUser);
-                callback(null); // Retorna null em caso de erro
+                callback(null); // Se a chave pública não for encontrada, retorna null
             }
+        } else {
+            console.error('Usuário não encontrado:', targetUser);
+            callback(null); // Se o usuário não for encontrado, retorna null
         }
     });
 

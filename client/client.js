@@ -236,7 +236,7 @@ const startApp = () => {
     rl.question('Escolha uma opção:\n1 - Cadastrar Usuário\n2 - Fazer Login\nEscolha: ', (choice) => {
         if (choice === '1') {
             rl.question('Digite seu nome de usuário: ', (username) => {
-                rl.question('Digite sua senha: ', (password) => {
+                rl.question('Digite sua senha: ', { hideEchoBack: true }, (password) => {
                     registerUser(username, password).then(response => {
                         if (response.error) {
                             console.error('Erro no cadastro:', response.error);
@@ -250,7 +250,7 @@ const startApp = () => {
             });
         } else if (choice === '2') {
             rl.question('Digite seu nome de usuário: ', (username) => {
-                rl.question('Digite sua senha: ', (password) => {
+                rl.question('Digite sua senha: ', { hideEchoBack: true }, (password) => {
                     authenticateUser(username, password).then(authResponse => {
                         if (authResponse.message !== 'Login bem-sucedido') {
                             console.error('Erro no login:', authResponse.message /*|| 'Usuário ou senha incorretos'*/);

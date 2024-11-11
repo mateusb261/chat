@@ -5,9 +5,9 @@ const router = express.Router();
 
 // Rota para cadastro de usuário
 router.post('/register', async (req, res) => {
-    const { username, password, publicKey } = req.body;
+    const { username, password } = req.body;
 
-    if (!username || !password || !publicKey) {
+    if (!username || !password /*|| !publicKey*/) {
         return res.status(400).json({ error: 'Preencha todos os campos.' });
     }
 
@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
         const newUser = await User.create({
             username,
             password: hashedPassword,
-            public_key: publicKey,  // Armazenar chave pública
+            //public_key: publicKey,  // Armazenar chave pública
         });
 
         res.status(201).json({ message: 'Usuário registrado com sucesso!' });

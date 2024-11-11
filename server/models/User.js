@@ -13,10 +13,13 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  /*
   public_key: {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+
+   */
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

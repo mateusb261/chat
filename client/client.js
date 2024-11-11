@@ -3,9 +3,9 @@ const io = require('socket.io-client');
 const { SERVER_URL } = require('./config/config');
 const { generatePrivateKey, generatePublicKey, generateSharedSecret, encryptMessage, decryptMessage } = require('./utils/ecc'); // Agora inclui encryptMessage e decryptMessage
 
-let currentUserPrivateKey = generatePrivateKey();
-let currentUserPublicKey = generatePublicKey(currentUserPrivateKey);
-let sharedSecretUser = '';
+let currentUserPrivateKey;
+let currentUserPublicKey;
+let sharedSecretUser;
 
 let selectedUser;
 
@@ -77,6 +77,9 @@ const authenticateUser = async (username, password) => {
         body: JSON.stringify({ username, password }),
     });
 
+    currentUserPrivateKey = generatePrivateKey();
+    currentUserPublicKey = generatePublicKey(currentUserPrivateKey);
+
     const data = await response.json();
 
     // Armazena a chave pública do usuário logado para uso posterior
@@ -93,18 +96,18 @@ const authenticateUser = async (username, password) => {
 
 // Função para cadastro de usuário (incluindo chave pública)
 const registerUser = async (username, password) => {
-    const { publicKey, privateKey } = generateKeys();
+    //const { publicKey, privateKey } = generateKeys();
 
     // Imprimir nome de usuário, senha e chave pública no terminal
     console.log(`Cadastro de Usuário:`);
     console.log(`Nome de Usuário: ${username}`);
-    console.log(`Senha: ${password}`);
-    console.log(`Chave Pública: ${publicKey}`);
+    //console.log(`Senha: ${password}`);
+    //console.log(`Chave Pública: ${publicKey}`);
 
     const response = await fetch(`${SERVER_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, publicKey }),
+        body: JSON.stringify({ username, password }),
     });
 
     const responseData = await response.json(); // Mantém a resposta JSON

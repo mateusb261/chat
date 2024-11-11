@@ -1,10 +1,13 @@
 const readline = require('readline');
 const io = require('socket.io-client');
 const { SERVER_URL } = require('./config/config');
-const { generateKeys, signMessage, verifyMessage, encryptMessage, decryptMessage } = require('./utils/ecc'); // Agora inclui encryptMessage e decryptMessage
+const { generatePrivateKey, generatePublicKey, generateSharedSecret, encryptMessage, decryptMessage } = require('./utils/ecc'); // Agora inclui encryptMessage e decryptMessage
 
-let currentUserPublicKey; // Armazena a chave pública do usuário logado
-let currentUserPrivateKey; // Armazena a chave privada do usuário logado
+let currentUserPrivateKey = generatePrivateKey();
+let currentUserPublicKey = generatePublicKey(currentUserPrivateKey);
+let sharedSecretUser = '';
+
+let selectedUser;
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -15,15 +18,30 @@ const rl = readline.createInterface({
 const socket = io(SERVER_URL);
 
 // Ouve as mensagens recebidas de outros usuários
-socket.on('message', (data) => {
+socket.on('newMessage', (data) => {
     if (!data.message || !data.from) {
         console.error('Mensagem inválida recebida:', data);
         return;
     }
 
+    console.log(data.message);
+
+
     try {
-        const decryptedMessage = decryptMessage(data.message, currentUserPrivateKey); // Descriptografa a mensagem recebida
+        socket.emit('requestPublicKey', data.from, (publicKey) => {
+        if (!publicKey) {
+            console.error('Chave pública não recebida ou inválida!');
+            return;
+        }
+
+        console.log('Chave pública recebida:', publicKey); // Verifique se a chave pública está correta
+
+        sharedSecretUser = generateSharedSecret(currentUserPrivateKey, publicKey);
+        const decryptedMessage = decryptMessage(data.message, sharedSecretUser); // Descriptografa a mensagem recebida
         console.log(`Mensagem recebida de ${data.from}: ${decryptedMessage}`);
+    });
+
+
     } catch (err) {
         console.error('Erro ao descriptografar a mensagem:', err);
     }
@@ -63,14 +81,9 @@ const authenticateUser = async (username, password) => {
 
     // Armazena a chave pública do usuário logado para uso posterior
     if (data.publicKey/* && data.privateKey*/) {
-        currentUserPublicKey = data.publicKey;
-        // Gera a chave privada no cliente sempre que o usuário se autentica
-        const { privateKey } = generateKeys(); // Gera a chave privada no cliente
-        currentUserPrivateKey = privateKey;
-
         console.log('Chave pública do usuário logado armazenada:', currentUserPublicKey);
         console.log('Chave privada gerada e armazenada no cliente:', currentUserPrivateKey); // Para debug
-
+        console.log('Chave privada gerada e armazenada no cliente:', sharedSecretUser); // Para debug
     } else {
         console.error('Falha ao obter a chave pública ou privada do usuário logado.');
     }
@@ -192,16 +205,20 @@ const showChatOptions = (username, selectedUser) => {
 // Função para enviar uma mensagem ao usuário selecionado
 const sendMessage = (username, selectedUser) => {
     socket.emit('requestPublicKey', selectedUser, (publicKey) => {
-        const { privateKey } = generateKeys();
+        socket.emit('startChat', selectedUser, publicKey); // Inicia o canal de chat com a chave pública do outro usuário
+
+        console.log(publicKey);
+
+        sharedSecretUser = generateSharedSecret(currentUserPrivateKey, publicKey);
+
         rl.question('Digite sua mensagem: ', (message) => {
             try {
-                const encryptedMessage = encryptMessage(message, publicKey); // Criptografa a mensagem com a chave pública do destinatário
+                const encryptedMessage = encryptMessage(message, sharedSecretUser); // Criptografa a mensagem com a chave pública do destinatário
 
                 // Exibe a mensagem criptografada para verificação
                 console.log('Mensagem criptografada:', encryptedMessage);
 
-                const signature = signMessage(message, currentUserPrivateKey); // Assina a mensagem
-                socket.emit('message', { to: selectedUser, message: encryptedMessage, signature }); // Envia a mensagem criptografada e assinada
+                socket.emit('message', { to: selectedUser, message: encryptedMessage }); // Envia a mensagem criptografada e assinada
                 console.log('Mensagem enviada!');
                 showChatOptions(username, selectedUser); // Volta ao menu de opções após enviar
             } catch (err) {

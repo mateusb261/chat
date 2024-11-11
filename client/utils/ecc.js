@@ -1,62 +1,51 @@
-const { generateKeyPairSync, publicEncrypt, privateDecrypt, createSign, createVerify } = require('crypto');
+const elliptic = require('elliptic');
+const crypto = require('crypto');
 
-// Função para gerar um par de chaves ECC
-const generateKeys = () => {
-    const { publicKey, privateKey } = generateKeyPairSync('ec', {
-        namedCurve: 'secp256k1', // ou outro padrão ECC
-    });
-    return {
-        publicKey: publicKey.export({ type: 'spki', format: 'pem' }),
-        privateKey: privateKey.export({ type: 'pkcs8', format: 'pem' })
-    };
-};
+// Definir a curva ECC (NIST P-256)
+const ec = new elliptic.ec('p256');
 
-// Função para assinar a mensagem com a chave privada (ECC)
-const signMessage = (message, privateKey) => {
-    try {
-        const sign = createSign('SHA256');
-        sign.update(message);
-        const signature = sign.sign(privateKey, 'base64');
-        return signature; // Retorna a assinatura da mensagem
-    } catch (err) {
-        console.error('Erro ao assinar a mensagem:', err);
-        throw err;
-    }
-};
+// Função para gerar chave privada
+function generatePrivateKey() {
+  const keyPair = ec.genKeyPair();
+  return keyPair.getPrivate('hex');
+}
 
-// Função para verificar a assinatura da mensagem com a chave pública (ECC)
-const verifyMessage = (message, signature, publicKey) => {
-    try {
-        const verify = createVerify('SHA256');
-        verify.update(message);
-        const isValid = verify.verify(publicKey, signature, 'base64');
-        return isValid; // Retorna verdadeiro se a assinatura for válida
-    } catch (err) {
-        console.error('Erro ao verificar a assinatura:', err);
-        throw err;
-    }
-};
+// Função para gerar chave pública a partir da chave privada
+function generatePublicKey(privateKey) {
+  const keyPair = ec.keyFromPrivate(privateKey);
+  return keyPair.getPublic('hex');
+}
 
-// Função para criptografar a mensagem com a chave pública do destinatário
-const encryptMessage = (message, publicKey) => {
-    try {
-        const encrypted = publicEncrypt(publicKey, Buffer.from(message));
-        return encrypted.toString('base64'); // Retorna a mensagem criptografada
-    } catch (err) {
-        console.error('Erro ao criptografar a mensagem:', err);
-        throw err;
-    }
-};
+// Função para gerar chave ECDH (shared secret) usando a chave privada do usuário e a chave pública do outro usuário
+function generateSharedSecret(privateKey, otherPublicKey) {
+  const keyPair = ec.keyFromPrivate(privateKey);
+  const sharedSecret = keyPair.derive(ec.keyFromPublic(otherPublicKey, 'hex').getPublic());
+  return sharedSecret.toString('hex');
+}
 
-// Função para descriptografar a mensagem com a chave privada do destinatário
-const decryptMessage = (encryptedMessage, privateKey) => {
-    try {
-        const decrypted = privateDecrypt(privateKey, Buffer.from(encryptedMessage, 'base64'));
-        return decrypted.toString(); // Retorna a mensagem descriptografada
-    } catch (err) {
-        console.error('Erro ao descriptografar a mensagem:', err);
-        throw err;
-    }
-};
+// Função para criptografar uma mensagem com AES
+function encryptMessage(message, sharedSecret) {
+  const key = crypto.createHash('sha256').update(sharedSecret).digest();
+  const iv = crypto.randomBytes(16);
 
-module.exports = { generateKeys, signMessage, verifyMessage, encryptMessage, decryptMessage };
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  let encryptedMessage = cipher.update(message, 'utf8', 'hex');
+  encryptedMessage += cipher.final('hex');
+
+  return { iv: iv.toString('hex'), encryptedMessage };
+}
+
+// Função para descriptografar a mensagem com AES
+function decryptMessage(encryptedData, sharedSecret) {
+  const key = crypto.createHash('sha256').update(sharedSecret).digest();
+  const iv = Buffer.from(encryptedData.iv, 'hex');
+  const encryptedMessage = Buffer.from(encryptedData.encryptedMessage, 'hex');
+
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  let decryptedMessage = decipher.update(encryptedMessage, null, 'utf8');
+  decryptedMessage += decipher.final('utf8');
+
+  return decryptedMessage;
+}
+
+module.exports = { generatePrivateKey, generatePublicKey, generateSharedSecret, encryptMessage, decryptMessage };

@@ -43,6 +43,8 @@ io.on('connection', (socket) => {
         // Armazena o usuário com o ID do socket
         connectedUsers[socket.id] = { username, publicKey };
 
+        console.log(publicKey);
+
         // Filtra outros usuários conectados
         const otherUsers = Object.values(connectedUsers)
             .filter(user => user.username !== username)
@@ -89,21 +91,25 @@ io.on('connection', (socket) => {
 
     // Envio de mensagem criptografada
     socket.on('message', (data) => {
-        const { to, encryptedMessage } = data;
+        const { to, message } = data;
 
         console.log(data);
 
         // Log para quando uma mensagem for recebida
-        console.log(`Mensagem recebida de ${connectedUsers[socket.id].username} para ${to}: ${encryptedMessage}`);
+        console.log(`Mensagem recebida de ${connectedUsers[socket.id].username} para ${to}: ${message.encryptedMessage}`);
 
         // Busca o socket do destinatário
         const targetSocket = Object.keys(connectedUsers).find(id => connectedUsers[id].username === to);
         if (targetSocket) {
             // Verifica se existe um canal de chat ativo
             const chatSession = chatSessions[socket.id] && chatSessions[targetSocket];
+
+            console.log(chatSessions[socket.id]);
+            console.log(chatSessions[targetSocket]);
+
             if (chatSession) {
                 // Envia a mensagem criptografada para o destinatário
-                socket.to(targetSocket).emit('newMessage', { from: connectedUsers[socket.id].username, encryptedMessage });
+                socket.to(targetSocket).emit('newMessage', { from: connectedUsers[socket.id].username, message: message });
             } else {
                 console.error('Canal de chat não iniciado corretamente.');
             }

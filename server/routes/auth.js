@@ -61,7 +61,7 @@ router.post('/login', async (req, res) => {
     // Se tudo estiver certo, retorna sucesso no login e a chave pública
     res.status(200).json({
         message: 'Login bem-sucedido',
-        publicKey: user.public_key  // Envia a chave pública ao cliente
+        //publicKey: user.public_key  // Envia a chave pública ao cliente
     });
 
   } catch (error) {

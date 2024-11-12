@@ -61,7 +61,7 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         const username = connectedUsers[socket.id];
         if (username) {
-            console.log(`${username} se desconectou.`);
+            console.log(`Um host se desconectou.`);
             delete connectedUsers[socket.id];
         }
     });
@@ -104,8 +104,8 @@ io.on('connection', (socket) => {
             // Verifica se existe um canal de chat ativo
             const chatSession = chatSessions[socket.id] && chatSessions[targetSocket];
 
-            console.log(chatSessions[socket.id]);
-            console.log(chatSessions[targetSocket]);
+            //console.log(chatSessions[socket.id]);
+            //console.log(chatSessions[targetSocket]);
 
             if (chatSession) {
                 // Envia a mensagem criptografada para o destinatário

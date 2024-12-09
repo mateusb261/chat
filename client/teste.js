@@ -1,5 +1,6 @@
 const elliptic = require('elliptic');
 const crypto = require('crypto');
+const fs = require('fs');
 
 // Definir a curva ECC (NIST P-256)
 const ec = new elliptic.ec('p256');
@@ -51,8 +52,13 @@ function decryptMessage(encryptedData, sharedSecret) {
 // Exemplo de uso
 
 // Usuário 1 gera chave privada e pública
-const privateKeyUser1 = generatePrivateKey();
+
+const privateKeyFile = poly_privateKey.txt;
+
+const privateKeyUser1 = fs.readFileSync(privateKeyFile, 'utf8');
+    //console.log(Chave privada de ${username} carregada com sucesso.);
 const publicKeyUser1 = generatePublicKey(privateKeyUser1);
+console.log("chave pública " + publicKeyUser1);
 
 // Usuário 2 gera chave privada e pública
 const privateKeyUser2 = generatePrivateKey();
@@ -71,7 +77,7 @@ const message = "Olá, este é um teste de criptografia!";
 const encryptedData = encryptMessage(message, sharedSecretUser1);
 
 //console.log("Encrypted message:", encryptedData.encryptedMessage);
-console.log("Encrypted message:", encryptedData); // Imprime tudo
+console.log("Encrypted message:", encryptedData.encryptedMessage); // Imprime tudo
 
 // Descriptografar a mensagem de User2
 const decryptedMessage = decryptMessage(encryptedData, sharedSecretUser2);

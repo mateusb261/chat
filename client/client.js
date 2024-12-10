@@ -77,27 +77,12 @@ const authenticateUser = async (inputUsername, password) => {
         body: JSON.stringify({ username, password }),
     });
 
-    const privateKeyFile = `${username}_privateKey.txt`;
-
-    try {
-        const encryptedDataString = fs.readFileSync(privateKeyFile, 'utf8');
-        const encryptedData = JSON.parse(encryptedDataString);
-        currentUserPrivateKey = decryptMessage(encryptedData, password);
-    } catch (err) {
-        console.error(`Erro ao carregar a chave privada de ${username}:`, err.message);
-    }
-
-    currentUserPublicKey = generatePublicKey(currentUserPrivateKey);
     const data = await response.json();
-
-    console.log('Chave privada:', currentUserPrivateKey);
-    console.log('Chave pública:', currentUserPublicKey);
-
     return data;
 };
 
 // Função para autenticação com o código de verificação
-function requestAuthCode(inputUsername) {
+function requestAuthCode(inputUsername, password) {
     rl.question("Digite o código de autenticação recebido: ", async (code) => {
         try {
             const response = await fetch(`${SERVER_URL}/auth/verify-code`, {
@@ -111,6 +96,22 @@ function requestAuthCode(inputUsername) {
             if (response.ok) {
                 console.log("Autenticação em duas etapas concluída com sucesso!");
                 console.log("Bem-vindo à aplicação!");
+
+                const privateKeyFile = `${username}_privateKey.txt`;
+
+                try {
+                    const encryptedDataString = fs.readFileSync(privateKeyFile, 'utf8');
+                    const encryptedData = JSON.parse(encryptedDataString);
+                    currentUserPrivateKey = decryptMessage(encryptedData, password);
+                } catch (err) {
+                    console.error(`Erro ao carregar a chave privada de ${username}:`, err.message);
+                }
+
+                currentUserPublicKey = generatePublicKey(currentUserPrivateKey);
+
+                console.log('Chave privada:', currentUserPrivateKey);
+                console.log('Chave pública:', currentUserPublicKey);
+
                 startChat();
             } else {
                 const errorData = await response.json();
@@ -249,7 +250,7 @@ const startApp = () => {
                             console.error('Erro no login:', authResponse.message);
                             startApp();
                         } else {
-                            requestAuthCode(inputUsername);
+                            requestAuthCode(inputUsername, password);
                         }
                     });
                 });

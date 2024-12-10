@@ -96,6 +96,37 @@ const authenticateUser = async (inputUsername, password) => {
     return data;
 };
 
+// Função para autenticação com o código de verificação
+function requestAuthCode(inputUsername) {
+    rl.question("Digite o código de autenticação recebido: ", async (code) => {
+        try {
+            const response = await fetch(`${SERVER_URL}/auth/verify-code`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ inputUsername, code }),
+            });
+
+            if (response.ok) {
+                console.log("Autenticação em duas etapas concluída com sucesso!");
+                console.log("Bem-vindo à aplicação!");
+                startChat();
+            } else {
+                const errorData = await response.json();
+                console.error("Código inválido:", errorData.message || "Erro desconhecido.");
+                console.log("Tente novamente ou volte ao menu principal.");
+                // Retorne para o menu principal ou permita tentar o código novamente
+                startApp();
+            }
+        } catch (error) {
+            console.error("Erro ao validar o código:", error.message);
+            console.log("Tente novamente ou volte ao menu principal.");
+            startApp();
+        }
+    });
+}
+
 // Função para cadastro de usuário
 const registerUser = async (inputUsername, password) => {
     username = inputUsername;
@@ -214,11 +245,11 @@ const startApp = () => {
             rl.question('Digite seu nome de usuário: ', (inputUsername) => {
                 rl.question('Digite sua senha: ', (password) => {
                     authenticateUser(inputUsername, password).then(authResponse => {
-                        if (authResponse.message !== 'Login bem-sucedido') {
+                        if (authResponse.message !== 'Login bem-sucedido. Código de autenticação enviado por e-mail.') {
                             console.error('Erro no login:', authResponse.message);
                             startApp();
                         } else {
-                            startChat();
+                            requestAuthCode(inputUsername);
                         }
                     });
                 });

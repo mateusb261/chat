@@ -151,7 +151,6 @@ const registerUser = async (inputUsername, password) => {
     const encryptedDataString = JSON.stringify(encryptedData);
 
     fs.writeFileSync(privateKeyFile, encryptedDataString, 'utf8');
-    startApp();
 
     return responseData;
 };
@@ -239,7 +238,7 @@ const startApp = () => {
         if (choice === '1') {
             rl.question('Digite seu nome de usuário: ', (inputUsername) => {
                 rl.question('Digite sua senha: ', (password) => {
-                    registerUser(inputUsername, password).then(() => startChat());
+                    registerUser(inputUsername, password).then(() => startApp());
                 });
             });
         } else if (choice === '2') {

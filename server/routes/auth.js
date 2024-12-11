@@ -9,8 +9,8 @@ const crypto = require('crypto');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'mateusbastos261@gmail.com', // Atualizar com seu e-mail
-        pass: 'tytn uwcy gmjj fvqb' // Atualizar com sua senha ou usar variáveis de ambiente
+        user: 'exemploemail@gmail.com', // Atualizar com seu e-mail
+        pass: '' // Atualizar com sua senha ou usar variáveis de ambiente
     }
 });
 
@@ -77,7 +77,7 @@ router.post('/login', async (req, res) => {
 
         // Envia o código de autenticação por e-mail
         transporter.sendMail({
-            from: 'mateusbastos261@gmail.com',
+            from: 'exemploemail@gmail.com',
             to: username, // E-mail do usuário
             subject: 'Código de Autenticação',
             text: `Seu código de autenticação é: ${authCode}`

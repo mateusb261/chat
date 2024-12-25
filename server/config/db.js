@@ -1,7 +1,7 @@
 const { Sequelize } = require('sequelize');
 
 // Configuração para o banco de dados MySQL
-const sequelize = new Sequelize('chat', 'root', '@1Sql', {
+const sequelize = new Sequelize('chat', 'root', '<<senha>>', {
     host: 'localhost', // ou o endereço IP do seu servidor MySQL
     dialect: 'mysql',
 });
